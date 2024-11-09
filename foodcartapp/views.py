@@ -1,8 +1,13 @@
 from django.http import JsonResponse
 from django.templatetags.static import static
-
+from django.core.exceptions import ValidationError
+import json
+from phonenumber_field.phonenumber import to_python
+from phonenumbers import NumberParseException
 
 from .models import Product
+from .models import OrderProduct
+from .models import Order
 
 
 def banners_list_api(request):
@@ -58,5 +63,32 @@ def product_list_api(request):
 
 
 def register_order(request):
-    # TODO это лишь заглушка
-    return JsonResponse({})
+    try:
+        frontend_order = json.loads(request.body.decode())
+        phonenumber = to_python(frontend_order['phonenumber'])
+        if not phonenumber or not phonenumber.is_valid():
+            raise ValidationError('Номер телефона недействителен')
+        order = Order.objects.create(
+            first_name=frontend_order['firstname'],
+            last_name=frontend_order['lastname'],
+            phone_number=phonenumber,
+            address=frontend_order['address']
+        )
+        for product_order in frontend_order['products']:
+            OrderProduct.objects.create(
+                product=Product.objects.get(id=product_order['product']),
+                quantity=product_order['quantity'],
+                order=order
+            )
+        return JsonResponse({
+           'success': 'Заказ сформирован успешно'
+        })
+    except (NumberParseException, ValidationError):
+        return JsonResponse({
+            'error': 'Неверный номер телефона'
+        },
+            status=400)
+    except Exception:
+        return JsonResponse({
+           'error': 'Возникла какая-то ошибка. Попробуйте ещё раз'
+        })
