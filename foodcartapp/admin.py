@@ -111,13 +111,23 @@ class ProductAdmin(admin.ModelAdmin):
 class OrderProductInline(admin.TabularInline):
     model = OrderProduct
     extra = 1
-    fields = ('product', 'quantity')
+    fields = ('product', 'price', 'quantity')
 
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = ('id', 'first_name', 'last_name', 'phone_number', 'address', 'order_products_list')
     inlines = [OrderProductInline]
+
+    def save_formset(self, request, form, formset, change):
+        if formset.model == OrderProduct:
+            instances = formset.save(commit=False)
+            for instance in instances:
+                if not instance.price:
+                    instance.price = instance.product.price
+                instance.save()
+        else:
+            formset.save()
 
     def order_products_list(self, obj):
         products = obj.order_list.all()

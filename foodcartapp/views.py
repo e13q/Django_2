@@ -99,13 +99,14 @@ class OrderSerializer(ModelSerializer):
         return super().to_internal_value(data)
 
     def create(self, validated_data):
-        products_data = validated_data.pop('products')
+        order_list = validated_data.pop('products')
         order = Order.objects.create(**validated_data)
-        for product_data in products_data:
+        for product in order_list:
             OrderProduct.objects.create(
                 order=order,
-                product=product_data['product'],
-                quantity=product_data['quantity']
+                product=product['product'],
+                quantity=product['quantity'],
+                price=product['product'].price
             )
         return order
 
