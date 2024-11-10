@@ -1,7 +1,9 @@
 from django.contrib import admin
+from django.http import HttpResponseRedirect
 from django.shortcuts import reverse
 from django.templatetags.static import static
 from django.utils.html import format_html
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from .models import Product
 from .models import ProductCategory
@@ -116,7 +118,14 @@ class OrderProductInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'first_name', 'last_name', 'phone_number', 'address', 'order_products_list')
+    list_display = (
+        'id',
+        'first_name',
+        'last_name',
+        'phone_number',
+        'address',
+        'order_products_list'
+    )
     inlines = [OrderProductInline]
 
     def save_formset(self, request, form, formset, change):
@@ -134,5 +143,15 @@ class OrderAdmin(admin.ModelAdmin):
         return ", ".join(
             [f"{item.product.name} x {item.quantity}" for item in products]
         )
+
+    def response_change(self, request, obj):
+        res = super().response_change(request, obj)
+        next_url = request.GET.get('next')
+        if next_url and url_has_allowed_host_and_scheme(
+            next_url,
+            allowed_hosts={request.get_host()}
+        ):
+            return HttpResponseRedirect(next_url)
+        return res
 
     order_products_list.short_description = 'элементы заказа'

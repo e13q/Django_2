@@ -38,7 +38,7 @@
           {{ order.total_price }} руб.
         </td>
         <td>
-          <a href="{% url 'admin:foodcartapp_order_change' order.id %}">ред.</a>
+          <a href="{% url 'admin:foodcartapp_order_change' order.id %}?next={{request.path|urlencode}}">ред.</a>
         </td>
       </tr>
     {% endfor %}
