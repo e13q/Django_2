@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from django.templatetags.static import static
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework.serializers import ModelSerializer
+from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from phonenumber_field.serializerfields import PhoneNumberField
 
 from .models import Product
@@ -71,14 +71,26 @@ class OrderProductSerializer(ModelSerializer):
 class OrderSerializer(ModelSerializer):
     phone_number = PhoneNumberField(region="RU")
     products = OrderProductSerializer(
-        many=True, allow_empty=False
+        many=True, allow_empty=False, write_only=True
     )
+    order_list = SerializerMethodField(read_only=True)
 
     class Meta:
         model = Order
         fields = [
-            'first_name', 'last_name', 'phone_number', 'address', 'products'
+            'first_name', 'last_name', 'phone_number', 'address', 'products', 'order_list'
         ]
+        extra_kwargs = {
+            'order_list': {'read_only': True}
+        }
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['firstname'] = ret.pop('first_name', None)
+        ret['lastname'] = ret.pop('last_name', None)
+        ret['phonenumber'] = ret.pop('phone_number', None)
+        ret['items'] = ret.pop('order_list', None)
+        return ret
 
     def to_internal_value(self, data):
         data['first_name'] = data.pop('firstname', None)
@@ -97,11 +109,15 @@ class OrderSerializer(ModelSerializer):
             )
         return order
 
+    def get_order_list(self, obj):
+        products = obj.order_list.all()
+        return OrderProductSerializer(products, many=True).data
+
 
 @api_view(['POST'])
 def register_order(request):
     serializer = OrderSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
-        return Response({'success': 'Заказ сформирован успешно'})
+        return Response(serializer.data)
     return Response(serializer.errors, status=400)

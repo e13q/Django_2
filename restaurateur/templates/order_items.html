@@ -17,14 +17,21 @@
       <th>Клиент</th>
       <th>Телефон</th>
       <th>Адрес доставки</th>
+      <th>Заказ</th>
     </tr>
-
-    {% for item in order_items %}
+    {% for order in orders %}
       <tr>
-        <td>-</td>
-        <td>-</td>
-        <td>-</td>
-        <td>-</td>
+        <td>{{ order.id }}</td>
+        <td>{{ order.first_name }} {{ order.last_name }}</td>
+        <td>{{ order.phone_number }}</td>
+        <td>{{ order.address }}</td>
+        <td>
+          {% for order_item in order.order_list.all %}
+            <img src="{{order_item.product.image.url}}" alt="{{order_item.product.name}}" height="20px">
+            {{ order_item.product.name }} 
+            <b>x {{ order_item.quantity }} </b>
+          {% endfor %}
+        </td>
       </tr>
     {% endfor %}
    </table>
