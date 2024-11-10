@@ -1,9 +1,9 @@
 from django.http import JsonResponse
 from django.templatetags.static import static
-from django.core.exceptions import ValidationError
-import json
-from phonenumber_field.phonenumber import to_python
-from phonenumbers import NumberParseException
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework.serializers import ModelSerializer
+from phonenumber_field.serializerfields import PhoneNumberField
 
 from .models import Product
 from .models import OrderProduct
@@ -62,33 +62,46 @@ def product_list_api(request):
     })
 
 
-def register_order(request):
-    try:
-        frontend_order = json.loads(request.body.decode())
-        phonenumber = to_python(frontend_order['phonenumber'])
-        if not phonenumber or not phonenumber.is_valid():
-            raise ValidationError('Номер телефона недействителен')
-        order = Order.objects.create(
-            first_name=frontend_order['firstname'],
-            last_name=frontend_order['lastname'],
-            phone_number=phonenumber,
-            address=frontend_order['address']
-        )
-        for product_order in frontend_order['products']:
+class OrderProductSerializer(ModelSerializer):
+    class Meta:
+        model = OrderProduct
+        fields = ['product', 'quantity']
+
+
+class OrderSerializer(ModelSerializer):
+    phone_number = PhoneNumberField(region="RU")
+    products = OrderProductSerializer(
+        many=True, allow_empty=False
+    )
+
+    class Meta:
+        model = Order
+        fields = [
+            'first_name', 'last_name', 'phone_number', 'address', 'products'
+        ]
+
+    def to_internal_value(self, data):
+        data['first_name'] = data.pop('firstname', None)
+        data['last_name'] = data.pop('lastname', None)
+        data['phone_number'] = data.pop('phonenumber', None)
+        return super().to_internal_value(data)
+
+    def create(self, validated_data):
+        products_data = validated_data.pop('products')
+        order = Order.objects.create(**validated_data)
+        for product_data in products_data:
             OrderProduct.objects.create(
-                product=Product.objects.get(id=product_order['product']),
-                quantity=product_order['quantity'],
-                order=order
+                order=order,
+                product=product_data['product'],
+                quantity=product_data['quantity']
             )
-        return JsonResponse({
-           'success': 'Заказ сформирован успешно'
-        })
-    except (NumberParseException, ValidationError):
-        return JsonResponse({
-            'error': 'Неверный номер телефона'
-        },
-            status=400)
-    except Exception:
-        return JsonResponse({
-           'error': 'Возникла какая-то ошибка. Попробуйте ещё раз'
-        })
+        return order
+
+
+@api_view(['POST'])
+def register_order(request):
+    serializer = OrderSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({'success': 'Заказ сформирован успешно'})
+    return Response(serializer.errors, status=400)
