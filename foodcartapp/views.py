@@ -1,5 +1,6 @@
 from django.http import JsonResponse
 from django.templatetags.static import static
+from django.db import transaction
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
@@ -100,15 +101,16 @@ class OrderSerializer(ModelSerializer):
 
     def create(self, validated_data):
         order_list = validated_data.pop('products')
-        order = Order.objects.create(**validated_data)
-        for product in order_list:
-            OrderProduct.objects.create(
-                order=order,
-                product=product['product'],
-                quantity=product['quantity'],
-                price=product['product'].price
-            )
-        return order
+        with transaction.atomic():
+            order = Order.objects.create(**validated_data)
+            for product in order_list:
+                OrderProduct.objects.create(
+                    order=order,
+                    product=product['product'],
+                    quantity=product['quantity'],
+                    price=product['product'].price
+                )
+            return order
 
     def get_order_list(self, obj):
         products = obj.order_list.all()
