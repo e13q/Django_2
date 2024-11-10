@@ -18,6 +18,7 @@
       <th>Телефон</th>
       <th>Адрес доставки</th>
       <th>Заказ</th>
+      <th>Сумма заказа</th>
     </tr>
     {% for order in orders %}
       <tr>
@@ -31,6 +32,9 @@
             {{ order_item.product.name }} 
             <b>x {{ order_item.quantity }} </b>
           {% endfor %}
+        </td>
+        <td>
+          {{ order.total_price }} руб.
         </td>
       </tr>
     {% endfor %}
