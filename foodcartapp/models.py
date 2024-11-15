@@ -168,6 +168,23 @@ class Order(models.Model):
         'комментарий',
         blank=True
     )
+    registered_at = models.DateTimeField(
+        'Время регистрации',
+        auto_now_add=True,
+        db_index=True,
+    )
+    called_at = models.DateTimeField(
+        'Время звонка',
+        null=True,
+        blank=True,
+        db_index=True
+    )
+    completed_at = models.DateTimeField(
+        'Время завершения',
+        null=True,
+        blank=True,
+        db_index=True
+    )
 
     objects = OrderQuerySet.as_manager()
 

@@ -118,15 +118,29 @@ class OrderProductInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
+    readonly_fields = ['registered_at']
+
     list_display = (
         'id',
+        'phone_number',
+        'status',
+        'registered_at'
+    )
+
+    fields = (
         'first_name',
         'last_name',
         'phone_number',
         'address',
         'status',
-        'order_products_list'
+        'comment',
+        'registered_at',
+        'called_at',
+        'completed_at',
     )
+
+    ordering = ['registered_at']
+
     inlines = [OrderProductInline]
 
     def save_formset(self, request, form, formset, change):
