@@ -127,18 +127,6 @@ class OrderAdmin(admin.ModelAdmin):
         'registered_at'
     )
 
-    fields = (
-        'first_name',
-        'last_name',
-        'phone_number',
-        'address',
-        'status',
-        'comment',
-        'registered_at',
-        'called_at',
-        'completed_at',
-    )
-
     ordering = ['registered_at']
 
     inlines = [OrderProductInline]

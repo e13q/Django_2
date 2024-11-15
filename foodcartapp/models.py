@@ -141,6 +141,10 @@ class Order(models.Model):
         ('Delivering', 'Доставляется'),
         ('Completed', 'Завершён'),
     )
+    PAYMENT_TYPES = (
+        ('Digital', 'Электронно'),
+        ('Cash', 'Наличностью')
+    )
     first_name = models.CharField(
         'имя',
         max_length=255,
@@ -148,9 +152,6 @@ class Order(models.Model):
     last_name = models.CharField(
         'фамилия',
         max_length=255,
-    )
-    phone_number = PhoneNumberField(
-        verbose_name='номер телефона'
     )
     address = models.CharField(
         'адрес',
@@ -162,6 +163,13 @@ class Order(models.Model):
         max_length=12,
         choices=STATUSES,
         default=STATUSES[0][0],
+        db_index=True
+    )
+    payment_type = models.CharField(
+        'способ оплаты',
+        max_length=12,
+        choices=PAYMENT_TYPES,
+        default=PAYMENT_TYPES[0][0],
         db_index=True
     )
     comment = models.TextField(
@@ -184,6 +192,9 @@ class Order(models.Model):
         null=True,
         blank=True,
         db_index=True
+    )
+    phone_number = PhoneNumberField(
+        verbose_name='номер телефона'
     )
 
     objects = OrderQuerySet.as_manager()
