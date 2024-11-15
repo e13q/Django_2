@@ -135,6 +135,12 @@ class OrderQuerySet(models.QuerySet):
 
 
 class Order(models.Model):
+    STATUSES = (
+        ('Unprocessed', 'Необработан'),
+        ('Cooking', 'Готовится'),
+        ('Delivering', 'Доставляется'),
+        ('Completed', 'Завершён'),
+    )
     first_name = models.CharField(
         'имя',
         max_length=255,
@@ -149,6 +155,13 @@ class Order(models.Model):
     address = models.CharField(
         'адрес',
         max_length=255,
+        db_index=True
+    )
+    status = models.CharField(
+        'статус',
+        max_length=12,
+        choices=STATUSES,
+        default=STATUSES[0][0],
         db_index=True
     )
 

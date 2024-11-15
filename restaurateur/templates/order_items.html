@@ -14,6 +14,7 @@
    <table class="table table-responsive">
     <tr>
       <th>ID заказа</th>
+      <th>Статус</th>
       <th>Клиент</th>
       <th>Телефон</th>
       <th>Адрес доставки</th>
@@ -22,25 +23,28 @@
       <th>Ссылка на админку</th>
     </tr>
     {% for order in orders %}
-      <tr>
-        <td>{{ order.id }}</td>
-        <td>{{ order.first_name }} {{ order.last_name }}</td>
-        <td>{{ order.phone_number }}</td>
-        <td>{{ order.address }}</td>
-        <td>
-          {% for order_item in order.order_list.all %}
-            <img src="{{order_item.product.image.url}}" alt="{{order_item.product.name}}" height="20px">
-            {{ order_item.product.name }} 
-            <b>x {{ order_item.quantity }} </b>
-          {% endfor %}
-        </td>
-        <td>
-          {{ order.total_price }} руб.
-        </td>
-        <td>
-          <a href="{% url 'admin:foodcartapp_order_change' order.id %}?next={{request.path|urlencode}}">ред.</a>
-        </td>
-      </tr>
+      {% if order.status != 'Completed' %}
+        <tr>
+          <td>{{ order.id }}</td>
+          <td>{{ order.get_status_display }}</td>
+          <td>{{ order.first_name }} {{ order.last_name }}</td>
+          <td>{{ order.phone_number }}</td>
+          <td>{{ order.address }}</td>
+          <td>
+            {% for order_item in order.order_list.all %}
+              <img src="{{order_item.product.image.url}}" alt="{{order_item.product.name}}" height="20px">
+              {{ order_item.product.name }} 
+              <b>x {{ order_item.quantity }} </b>
+            {% endfor %}
+          </td>
+          <td>
+            {{ order.total_price }} руб.
+          </td>
+          <td>
+            <a href="{% url 'admin:foodcartapp_order_change' order.id %}?next={{request.path|urlencode}}">ред.</a>
+          </td>
+        </tr>
+      {% endif %}
     {% endfor %}
    </table>
   </div>
