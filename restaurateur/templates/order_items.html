@@ -18,6 +18,7 @@
       <th>Клиент</th>
       <th>Телефон</th>
       <th>Адрес доставки</th>
+      <th>Комментарий</th>
       <th>Заказ</th>
       <th>Сумма заказа</th>
       <th>Ссылка на админку</th>
@@ -30,6 +31,7 @@
           <td>{{ order.first_name }} {{ order.last_name }}</td>
           <td>{{ order.phone_number }}</td>
           <td>{{ order.address }}</td>
+          <td>{{ order.comment }}</td>
           <td>
             {% for order_item in order.order_list.all %}
               <img src="{{order_item.product.image.url}}" alt="{{order_item.product.name}}" height="20px">
