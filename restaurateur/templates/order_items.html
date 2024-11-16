@@ -18,6 +18,7 @@
       <th>Способ оплаты</th>
       <th>Клиент</th>
       <th>Телефон</th>
+      <th>Ресторан</th>
       <th>Адрес доставки</th>
       <th>Комментарий</th>
       <th>Заказ</th>
@@ -32,14 +33,29 @@
           <td>{{ order.get_payment_type_display }}</td>
           <td>{{ order.first_name }} {{ order.last_name }}</td>
           <td>{{ order.phone_number }}</td>
+          <td>
+            {% if order.restaurant %}
+              <b>{{ order.restaurant.name }}</b>
+            {% elif order.get_restaurants.count > 0 %}
+              <details>
+                <summary><i> Выберите ресторан </i></summary>
+              {{'Может приготовить: '}}
+              {% for restaurant in order.get_restaurants %}
+                {{ ' >> '|add:restaurant|linebreaks  }}
+              {% endfor %}
+              </details>
+            {% else %}
+              {{ 'Невозможно собрать заказ' }}
+            {% endif %}
+          </td>
           <td>{{ order.address }}</td>
           <td>{{ order.comment }}</td>
           <td>
-            {% for order_item in order.order_list.all %}
-              <img src="{{order_item.product.image.url}}" alt="{{order_item.product.name}}" height="20px">
-              <b>- {{ order_item.quantity }} </b>
-              {{ " "|linebreaks }}
-            {% endfor %}
+              {% for order_item in order.order_list.all %}     
+                    <img src="{{order_item.product.image.url}}" alt="{{order_item.product.name}}" height="20px">
+                    {{ order_item.product.name }}
+                    <b>- {{ order_item.quantity }} </b>
+              {% endfor %}
           </td>
           <td>
             {{ order.total_price }} руб.

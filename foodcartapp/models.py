@@ -1,6 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator
-from django.db.models import F, Sum
+from django.db.models import F, Sum, Count, Case, When, Value
 from phonenumber_field.modelfields import PhoneNumberField
 
 
@@ -133,6 +133,16 @@ class OrderQuerySet(models.QuerySet):
             )
         )
 
+    def with_status_by(self):
+        status_order = Case(
+            *[
+                When(
+                    status=status[0], then=Value(k)
+                ) for k, status in enumerate(Order.STATUSES)
+            ]
+        )
+        return self.annotate(status_by=status_order).order_by('status_by')
+
 
 class Order(models.Model):
     STATUSES = (
@@ -196,8 +206,36 @@ class Order(models.Model):
     phone_number = PhoneNumberField(
         verbose_name='номер телефона'
     )
+    restaurant = models.ForeignKey(
+        Restaurant,
+        verbose_name='ресторан',
+        on_delete=models.SET_NULL,
+        related_name='orders',
+        null=True,
+        blank=True
+    )
 
     objects = OrderQuerySet.as_manager()
+
+    def get_restaurants(self):
+        required_products = self.order_list.values_list(
+            'product_id', flat=True
+        )
+        restaurants = (
+            Restaurant.objects
+            .filter(menu_items__product__id__in=required_products)
+            .annotate(matching_products=Count(
+                'menu_items__product', distinct=True)
+            )
+            .filter(matching_products=len(required_products))
+            .values_list('name', flat=True)
+        )
+        return restaurants
+
+    def save(self, *args, **kwargs):
+        if self.restaurant and self.status == 'Unprocessed':
+            self.status = 'Cooking'
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = 'заказ'

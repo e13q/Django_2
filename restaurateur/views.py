@@ -92,7 +92,7 @@ def view_restaurants(request):
 def view_orders(request):
     orders = Order.objects.prefetch_related(
         'order_list__product'
-    ).with_total_price()
+    ).with_total_price().with_status_by()
     return render(request, template_name='order_items.html', context={
         'orders': orders,
     })
