@@ -25,43 +25,45 @@
       <th>Сумма заказа</th>
       <th>Ссылка на админку</th>
     </tr>
-    {% for order in orders %}
-      {% if order.status != 'Completed' %}
+    {% for order_with_restaurants in orders_with_restaurants %}
+      {% if order_with_restaurants.order.status != 'Completed' %}
         <tr>
-          <td>{{ order.id }}</td>
-          <td>{{ order.get_status_display }}</td>
-          <td>{{ order.get_payment_type_display }}</td>
-          <td>{{ order.first_name }} {{ order.last_name }}</td>
-          <td>{{ order.phone_number }}</td>
+          <td>{{ order_with_restaurants.order.id }}</td>
+          <td>{{ order_with_restaurants.order.get_status_display }}</td>
+          <td>{{ order_with_restaurants.order.get_payment_type_display }}</td>
+          <td>{{ order_with_restaurants.order.first_name }} {{ order_with_restaurants.last_name }}</td>
+          <td>{{ order_with_restaurants.order.phone_number }}</td>
           <td>
-            {% if order.restaurant %}
-              <b>{{ order.restaurant.name }}</b>
-            {% elif order.get_restaurants.count > 0 %}
+            {% if order_with_restaurants.order.restaurant %}
+              <b>{{ order_with_restaurants.order.restaurant.name }}</b>
+            {% elif order_with_restaurants.restaurants_with_distance %}
               <details>
                 <summary><i> Выберите ресторан </i></summary>
               {{'Может приготовить: '}}
-              {% for restaurant in order.get_restaurants %}
-                {{ ' >> '|add:restaurant|linebreaks  }}
+              {% for restaurant in order_with_restaurants.restaurants_with_distance %}              
+                <p>
+                  {{ ' >> ' }} {{ restaurant.name}} {{restaurant.distance_to_order}} км
+                </p>                
               {% endfor %}
               </details>
             {% else %}
               {{ 'Невозможно собрать заказ' }}
             {% endif %}
           </td>
-          <td>{{ order.address }}</td>
-          <td>{{ order.comment }}</td>
+          <td>{{ order_with_restaurants.order.address }}</td>
+          <td>{{ order_with_restaurants.order.comment }}</td>
           <td>
-              {% for order_item in order.order_list.all %}     
+              {% for order_item in order_with_restaurants.order.order_list.all %}     
                     <img src="{{order_item.product.image.url}}" alt="{{order_item.product.name}}" height="20px">
-                    {{ order_item.product.name }}
-                    <b>- {{ order_item.quantity }} </b>
+                    {{ order_with_restaurants.order.order_item.product.name }}
+                    <b>- {{ order_with_restaurants.order.order_item.quantity }} </b>
               {% endfor %}
           </td>
           <td>
-            {{ order.total_price }} руб.
+            {{ order_with_restaurants.order.total_price }} руб.
           </td>
           <td>
-            <a href="{% url 'admin:foodcartapp_order_change' order.id %}?next={{request.path|urlencode}}">ред.</a>
+            <a href="{% url 'admin:foodcartapp_order_change' order_with_restaurants.order.id %}?next={{request.path|urlencode}}">ред.</a>
           </td>
         </tr>
       {% endif %}

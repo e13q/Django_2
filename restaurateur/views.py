@@ -5,6 +5,7 @@ from django.urls import reverse_lazy
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
+from geopy.distance import distance
 
 from foodcartapp.models import Product, Restaurant, Order
 
@@ -93,6 +94,40 @@ def view_orders(request):
     orders = Order.objects.prefetch_related(
         'order_list__product'
     ).with_total_price().with_status_by()
+    orders_with_restaurants = []
+    for order in orders:
+        restaurants = order.get_restaurants()
+
+        order_coordinates = (
+            order.coordinates.lat,
+            order.coordinates.lon
+        ) if order.coordinates else None
+        restaurants_with_distance = []
+        if not order_coordinates:
+            restaurants_with_distance = None
+        else:
+            for restaurant in restaurants:
+                restaurant_coordinates = (
+                    restaurant.coordinates.lat,
+                    restaurant.coordinates.lon
+                )
+                if restaurant_coordinates:
+                    dist = round(
+                        distance(
+                                restaurant_coordinates, order_coordinates
+                            ).km, 3
+                    )
+                else:
+                    dist = None
+                restaurants_with_distance.append({
+                    'name': restaurant.name,
+                    'distance_to_order': dist
+                })
+
+        orders_with_restaurants.append({
+            'order': order,
+            'restaurants_with_distance': restaurants_with_distance
+        })
     return render(request, template_name='order_items.html', context={
-        'orders': orders,
+        'orders_with_restaurants': orders_with_restaurants,
     })

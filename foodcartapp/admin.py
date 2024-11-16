@@ -11,7 +11,8 @@ from .models import Restaurant
 from .models import RestaurantMenuItem
 from .models import Order
 from .models import OrderProduct
-
+from .models import Geo
+from utils.yandex_geo import fetch_coordinates
 
 class RestaurantMenuItemInline(admin.TabularInline):
     model = RestaurantMenuItem
@@ -33,6 +34,17 @@ class RestaurantAdmin(admin.ModelAdmin):
     inlines = [
         RestaurantMenuItemInline
     ]
+
+    actions = ['get_coordinates']
+
+    @admin.action(description='Запросить актуальные координаты точки')
+    def get_coordinates(self, requests, queryset):
+        for obj in queryset:
+            coordinates = fetch_coordinates(obj.address)
+            if coordinates:
+                lon, lat = coordinates
+                obj.coordinates = Geo.objects.create(lat=lat, lon=lon)
+                obj.save()
 
 
 @admin.register(Product)
@@ -122,6 +134,7 @@ class OrderAdmin(admin.ModelAdmin):
 
     list_display = (
         'id',
+        'address',
         'phone_number',
         'status',
         'registered_at'
@@ -130,6 +143,17 @@ class OrderAdmin(admin.ModelAdmin):
     ordering = ['registered_at']
 
     inlines = [OrderProductInline]
+
+    actions = ['get_coordinates']
+
+    @admin.action(description='Запросить актуальные координаты точки')
+    def get_coordinates(self, requests, queryset):
+        for obj in queryset:
+            coordinates = fetch_coordinates(obj.address)
+            if coordinates:
+                lon, lat = coordinates
+                obj.coordinates = Geo.objects.create(lat=lat, lon=lon)
+                obj.save()
 
     def save_formset(self, request, form, formset, change):
         if formset.model == OrderProduct:

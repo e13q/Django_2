@@ -3,6 +3,34 @@ from django.core.validators import MinValueValidator
 from django.db.models import F, Sum, Count, Case, When, Value
 from phonenumber_field.modelfields import PhoneNumberField
 
+from utils.yandex_geo import fetch_coordinates
+
+
+class Geo(models.Model):
+    lat = models.DecimalField(
+        'широта',
+        max_digits=9,
+        decimal_places=6,
+    )
+    lon = models.DecimalField(
+        'долгота',
+        max_digits=9,
+        decimal_places=6,
+    )
+
+    created_at = models.DateTimeField(
+        'время фиксации',
+        auto_now=True,
+        db_index=True,
+    )
+
+    class Meta:
+        verbose_name = 'геопозиция'
+        verbose_name_plural = 'геопозиции'
+
+    def __str__(self):
+        return f'{self.lat} {self.lon} от {self.created_at}'
+
 
 class Restaurant(models.Model):
     name = models.CharField(
@@ -18,6 +46,13 @@ class Restaurant(models.Model):
         'контактный телефон',
         max_length=50,
         blank=True,
+    )
+    coordinates = models.ForeignKey(
+        Geo,
+        verbose_name='геопозиция',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True
     )
 
     class Meta:
@@ -214,7 +249,13 @@ class Order(models.Model):
         null=True,
         blank=True
     )
-
+    coordinates = models.ForeignKey(
+        Geo,
+        verbose_name='геопозиция',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True
+    )
     objects = OrderQuerySet.as_manager()
 
     def get_restaurants(self):
@@ -228,13 +269,16 @@ class Order(models.Model):
                 'menu_items__product', distinct=True)
             )
             .filter(matching_products=len(required_products))
-            .values_list('name', flat=True)
         )
         return restaurants
 
     def save(self, *args, **kwargs):
         if self.restaurant and self.status == 'Unprocessed':
             self.status = 'Cooking'
+        coordinates = fetch_coordinates(self.address)
+        if coordinates:
+            lon, lat = coordinates
+            self.coordinates = Geo.objects.create(lat=lat, lon=lon)
         super().save(*args, **kwargs)
 
     class Meta:
