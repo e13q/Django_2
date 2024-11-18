@@ -3,6 +3,7 @@ from django.templatetags.static import static
 from django.db import transaction
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from phonenumber_field.serializerfields import PhoneNumberField
 
@@ -70,11 +71,13 @@ class OrderProductSerializer(ModelSerializer):
 
 
 class OrderSerializer(ModelSerializer):
-    phone_number = PhoneNumberField(region="RU")
+    phone_number = PhoneNumberField(region="RU", source='phonenumber')
+    first_name = serializers.CharField(source='firstname')
+    last_name = serializers.CharField(source='lastname')
     products = OrderProductSerializer(
         many=True, allow_empty=False, write_only=True
     )
-    order_list = SerializerMethodField(read_only=True)
+    order_list = SerializerMethodField(read_only=True, source='items')
 
     class Meta:
         model = Order
@@ -84,20 +87,6 @@ class OrderSerializer(ModelSerializer):
         extra_kwargs = {
             'order_list': {'read_only': True}
         }
-
-    def to_representation(self, instance):
-        ret = super().to_representation(instance)
-        ret['firstname'] = ret.pop('first_name', None)
-        ret['lastname'] = ret.pop('last_name', None)
-        ret['phonenumber'] = ret.pop('phone_number', None)
-        ret['items'] = ret.pop('order_list', None)
-        return ret
-
-    def to_internal_value(self, data):
-        data['first_name'] = data.pop('firstname', None)
-        data['last_name'] = data.pop('lastname', None)
-        data['phone_number'] = data.pop('phonenumber', None)
-        return super().to_internal_value(data)
 
     def create(self, validated_data):
         order_list = validated_data.pop('products')
