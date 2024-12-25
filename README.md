@@ -63,8 +63,16 @@ SECRET_KEY=django-insecure-0if40nf4nf93n4
 Получить ключ для корректной работы гео - можно [тут](https://developer.tech.yandex.ru/).
 Пример кода:
 ```
-YANDEX_GEO_API_KEY=23623fg-81245ad-1241247-brew3f-9retyer7664522134
+YANDEX_GEO_API_KEY = 23623fg-81245ad-1241247-brew3f-9retyer7664522134
 ```
+
+Для деплоя также потребуется токен. Перейдите на [rollbar](https://rollbar.com) и получите токен.
+Укажите его в .env
+Пример кода:
+```
+ROLLBAR_TOKEN = 23623fg-81245ad-1241247-brew3f-9retyer7664522134
+```
+
 
 Создайте файл базы данных SQLite и отмигрируйте её следующей командой:
 
