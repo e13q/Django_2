@@ -73,6 +73,22 @@ YANDEX_GEO_API_KEY = 23623fg-81245ad-1241247-brew3f-9retyer7664522134
 ROLLBAR_TOKEN = 23623fg-81245ad-1241247-brew3f-9retyer7664522134
 ```
 
+Также необходимо установить Postgresql.
+После чего создать бд, пользователя, предоставить полный доступ пользователю к бд:
+```
+CREATE DATABASE mydatabase;
+CREATE USER myuser WITH PASSWORD '12345';
+GRANT ALL PRIVILEGES ON DATABASE mydatabase TO myuser;
+```
+
+И внести данные в .env по примеру:
+```
+DATABASE_NAME=mydatabase 
+DATABASE_USER=myuser
+DATABASE_PASSWORD=12345
+DATABASE_HOST=localhost
+DATABASE_PORT=4432
+```
 
 Создайте файл базы данных SQLite и отмигрируйте её следующей командой:
 
@@ -157,11 +173,89 @@ Parcel будет следить за файлами в каталоге `bundle
 ./node_modules/.bin/parcel build bundles-src/index.js --dist-dir bundles --public-url="./"
 ```
 
-Настроить бэкенд: создать файл `.env` в каталоге `star_burger/` со следующими настройками:
+Настроить бэкенд: изменить файл `.env` в каталоге `star_burger/` со следующими настройками:
 
 - `DEBUG` — дебаг-режим. Поставьте `False`.
 - `SECRET_KEY` — секретный ключ проекта. Он отвечает за шифрование на сайте. Например, им зашифрованы все пароли на вашем сайте.
 - `ALLOWED_HOSTS` — [см. документацию Django](https://docs.djangoproject.com/en/3.1/ref/settings/#allowed-hosts)
+
+## Пример bash скрипта для автоматизации деплоя
+
+```
+#!/bin/bash
+set -e
+REPO_DIR="../opt/Django_2"
+VENV_DIR="venv"
+
+cd $REPO_DIR
+
+echo "Проверка наличия обновлений..."
+git fetch
+LOCAL=$(git rev-parse @)
+REMOTE=$(git rev-parse @{u})
+BASE=$(git merge-base @ @{u})
+
+if [ $LOCAL = $REMOTE ]; then
+    echo "Нет новых обновлений в репозитории. Завершение скрипта."
+    exit 0
+fi
+
+if [ $LOCAL = $BASE ]; then
+    echo "Нужно обновить репозиторий."
+else
+    echo "Нужно слить изменения."
+    exit 1
+fi
+
+echo "Обновление кода репозитория..."
+git pull
+COMMIT_HASH=$(git rev-parse HEAD)
+echo "Хэш коммита: $COMMIT_HASH"
+
+echo "Установка библиотек для Python..."
+source $VENV_DIR/bin/activate
+pip install -r requirements.txt
+
+echo "Увеличиваем файл подкачки для работы с Node.js..."
+/bin/dd if=/dev/zero of=/var/swap.1 bs=1M count=1024
+/sbin/mkswap /var/swap.1
+/sbin/swapon /var/swap.1
+
+echo "Установка библиотек для Node.js..."
+npm ci --force
+
+echo "Пересборка JS-кода..."
+./node_modules/.bin/parcel watch bundles-src/index.js --dist-dir bundles --public-url="./" &
+
+echo "Отключаем файл подкачки после работы с Node.js..."
+/sbin/swapoff /var/swap.1
+
+echo "Пересборка статики Django..."
+python manage.py collectstatic --noinput
+
+echo "Накат миграций..."
+python manage.py migrate
+
+echo "Перезапуск сервисов Systemd..."
+systemctl restart postgresql.service
+systemctl restart django2.service
+systemctl reload nginx.service
+
+echo "Отправка уведомления в Rollbar..."
+
+ROLLBAR_TOKEN=$(grep 'ROLLBAR_TOKEN' .env | cut -d '=' -f2)
+
+export ROLLBAR_TOKEN
+
+curl https://api.rollbar.com/api/1/deploy/ \
+    -F access_token="$ROLLBAR_TOKEN" \
+    -F environment="production" \
+    -F revision="$COMMIT_HASH" \
+
+unset ROLLBAR_TOKEN
+
+echo "Деплой успешно завершен!"
+```
 
 ## Цели проекта
 
