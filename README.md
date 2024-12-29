@@ -257,6 +257,8 @@ unset ROLLBAR_TOKEN
 echo "Деплой успешно завершен!"
 ```
 
+[Пример задеплоенного проекта](https://a42636452496852t.t.fvds.ru/)
+
 ## Цели проекта
 
 Код написан в учебных целях — это урок в курсе по Python и веб-разработке на сайте [Devman](https://dvmn.org). За основу был взят код проекта [FoodCart](https://github.com/Saibharath79/FoodCart).
