@@ -83,11 +83,7 @@ GRANT ALL PRIVILEGES ON DATABASE mydatabase TO myuser;
 
 И внести данные в .env по примеру:
 ```
-DATABASE_NAME=mydatabase 
-DATABASE_USER=myuser
-DATABASE_PASSWORD=12345
-DATABASE_HOST=localhost
-DATABASE_PORT=4432
+DATABASE_URL = postgres://postgres:56949@localhost:5433/mydatabase
 ```
 
 Создайте файл базы данных SQLite и отмигрируйте её следующей командой:
