@@ -163,94 +163,59 @@ Parcel будет следить за файлами в каталоге `bundle
 
 ## Как запустить prod-версию сайта
 
-Собрать фронтенд:
+На Linux нужен предустановленный Docker + Docker-Compose, а также предзаполенный docker-compose.override.yml с конф. данными. 
+Пример docker-compose.override.yml:
+```
+services:
+  backend:
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_SETTINGS_MODULE=star_burger.settings
+      - DATABASE_URL=postgres://user:password@db:5432/postgresql
+      - SECRET_KEY=djangocode
+      - YANDEX_GEO_API_KEY=7421412-84124-404127-r8532p-964322c
+      - ROLLBAR_TOKEN=311ffwqf41fwe0fqw12dqw124
+      - ALLOWED_HOSTS=a42636452496852t.t.fvds.ru,111.124.241.41
+      - DEBUG=False
+    volumes:
+      - bundles_volume:/app/bundles
+      - staticfiles_volume:/app/staticfiles
+      - media_volume:/app/media
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgresql
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
 
-```sh
-./node_modules/.bin/parcel build bundles-src/index.js --dist-dir bundles --public-url="./"
 ```
 
-Настроить бэкенд: изменить файл `.env` в каталоге `star_burger/` со следующими настройками:
-
-- `DEBUG` — дебаг-режим. Поставьте `False`.
-- `SECRET_KEY` — секретный ключ проекта. Он отвечает за шифрование на сайте. Например, им зашифрованы все пароли на вашем сайте.
-- `ALLOWED_HOSTS` — [см. документацию Django](https://docs.djangoproject.com/en/3.1/ref/settings/#allowed-hosts)
-
-## Пример bash скрипта для автоматизации деплоя
-
+Запуск 
+Пересборка фронтенда:
 ```
-#!/bin/bash
-set -e
-REPO_DIR="../opt/Django_2"
-VENV_DIR="venv"
+docker-compose run --rm frontend
+```
+Пересборка статики Django:
+```
+docker-compose run --rm backend python manage.py collectstatic --noinput
+```
+Накат миграций:
+```
+docker-compose run --rm backend python manage.py migrate
+```
+Запуск:
+```
+docker-compose up -d
+```
 
-cd $REPO_DIR
-
-echo "Проверка наличия обновлений..."
-git fetch
-LOCAL=$(git rev-parse @)
-REMOTE=$(git rev-parse @{u})
-BASE=$(git merge-base @ @{u})
-
-if [ $LOCAL = $REMOTE ]; then
-    echo "Нет новых обновлений в репозитории. Завершение скрипта."
-    exit 0
-fi
-
-if [ $LOCAL = $BASE ]; then
-    echo "Нужно обновить репозиторий."
-else
-    echo "Нужно слить изменения."
-    exit 1
-fi
-
-echo "Обновление кода репозитория..."
-git pull
-COMMIT_HASH=$(git rev-parse HEAD)
-echo "Хэш коммита: $COMMIT_HASH"
-
-echo "Установка библиотек для Python..."
-source $VENV_DIR/bin/activate
-pip install -r requirements.txt
-
-echo "Увеличиваем файл подкачки для работы с Node.js..."
-/bin/dd if=/dev/zero of=/var/swap.1 bs=1M count=1024
-/sbin/mkswap /var/swap.1
-/sbin/swapon /var/swap.1
-
-echo "Установка библиотек для Node.js..."
-npm ci --force
-
-echo "Пересборка JS-кода..."
-./node_modules/.bin/parcel watch bundles-src/index.js --dist-dir bundles --public-url="./" &
-
-echo "Отключаем файл подкачки после работы с Node.js..."
-/sbin/swapoff /var/swap.1
-
-echo "Пересборка статики Django..."
-python manage.py collectstatic --noinput
-
-echo "Накат миграций..."
-python manage.py migrate
-
-echo "Перезапуск сервисов Systemd..."
-systemctl restart postgresql.service
-systemctl restart django2.service
-systemctl reload nginx.service
-
-echo "Отправка уведомления в Rollbar..."
-
-ROLLBAR_TOKEN=$(grep 'ROLLBAR_TOKEN' .env | cut -d '=' -f2)
-
-export ROLLBAR_TOKEN
-
-curl https://api.rollbar.com/api/1/deploy/ \
-    -F access_token="$ROLLBAR_TOKEN" \
-    -F environment="production" \
-    -F revision="$COMMIT_HASH" \
-
-unset ROLLBAR_TOKEN
-
-echo "Деплой успешно завершен!"
+Также, быстрый деплой доступен по скрипту deploy.sh, для работы которого рекомендуется заполнить Rollbar токен в .env:
+```
+ROLLBAR_TOKEN=311ffwqf41fwe0fqw12dqw124
 ```
 
 [Пример задеплоенного проекта](https://a42636452496852t.t.fvds.ru/)
