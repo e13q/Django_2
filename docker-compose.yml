@@ -1,41 +1,49 @@
+
 services:
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     volumes:
-      - static_volume:/app/bundles
-
+      - bundles_volume:/app/bundles
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     environment:
       - DJANGO_SETTINGS_MODULE=star_burger.settings
-      - DATABASE_URL=postgres://postgres:postgres@db:5432/postgres
-      # - DATABASE_URL = postgres://myuser:938467083we@localhost:5432/mydatabase
-
     volumes:
-      - static_volume:/app/bundles
-      - static_volume:/app/staticfiles
-      - static_volume:/app/media
-    depends_on:
-      - db
-
+      - bundles_volume:/app/bundles
+      - staticfiles_volume:/app/staticfiles
+      - media_volume:/app/media
+  depends_on:
+     - db
   db:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
-    volumes:
-      - db_data:/var/lib/postgresql/data
+   image: postgres:14
+   volumes:
+     - db_data:/var/lib/postgresql/data
 
 volumes:
-  static_volume:
+  bundles_volume:
     driver: local
     driver_opts:
       o: bind
       type: none
-      device: /var/www/
+      device: /var/www/bundles/
+  staticfiles_volume:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /var/www/staticfiles/
+  media_volume:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /var/www/media/
   db_data:
+    driver_opts:
+      o: bind
+      type: none
+      device: /var/www/db_data
